@@ -1,0 +1,3 @@
+[submodule "xchains-bitcoin-ts"]
+	path = xchains-bitcoin-ts
+	url = https://github.com/scalarorg/xchains-bitcoin-ts
