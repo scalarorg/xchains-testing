@@ -4,6 +4,8 @@ import { AddressType } from "./types/bitcoin";
 import * as ecc from "tiny-secp256k1";
 import { ECPairFactory } from "ecpair";
 import { toXOnly } from "bitcoinjs-lib/src/psbt/bip371";
+import { BtcUnspent } from "xchains-bitcoin-ts/src/types/utxo";
+import { AddressTxsUtxo } from "@mempool/mempool.js/lib/interfaces/bitcoin/addresses";
 
 bitcoin.initEccLib(ecc);
 const ECPair = ECPairFactory(ecc);
@@ -75,3 +77,19 @@ export function getPublicKeyFromPrivateKeyWIF(
   const wif = ECPair.fromWIF(privateKeyWIF, network);
   return wif.publicKey.toString("hex");
 }
+
+export const fromBtcUnspentToMempoolUTXO = (
+  utxo: BtcUnspent
+): AddressTxsUtxo => {
+  return {
+    txid: utxo.txid,
+    vout: utxo.vout,
+    value: Math.round(utxo.amount * 100000000), // convert to satoshis
+    status: {
+      confirmed: utxo.confirmations > 0,
+      block_height: 0,
+      block_hash: "",
+      block_time: 0,
+    },
+  };
+};

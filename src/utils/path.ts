@@ -29,3 +29,17 @@ export function getScheduledTransactionExamplePath() {
     "scheduledTransaction.json"
   );
 }
+
+export function getBondingTxExpExamplePath() {
+  return path.join(__dirname, "..", "..", ".example", "bondingTxExp.json");
+}
+
+export function getUnbondingServiceTxExpExamplePath() {
+  return path.join(
+    __dirname,
+    "..",
+    "..",
+    ".example",
+    "unbondingServiceTxExp.json"
+  );
+}

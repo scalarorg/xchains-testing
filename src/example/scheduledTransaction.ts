@@ -1,5 +1,5 @@
 import { getBitcoinNetwork, getPublicKeyFromPrivateKeyWIF } from "@/bitcoin";
-import { sendBitcoin } from "@/transaction";
+import { sendBitcoin } from "@/transactions/sendBitcoin";
 import { getScheduledTransactionExamplePath } from "@/utils/path";
 import fs from "fs";
 

@@ -1,11 +1,12 @@
 import * as bitcoin from "bitcoinjs-lib";
 import { ECPairFactory } from "ecpair";
 import * as ecc from "tiny-secp256k1";
-import { BitcoinAccount } from "./types/bitcoin";
-import { getBitcoinNetwork } from "./bitcoin";
-import { getClient } from "./client/bitcoin";
-import { BtcMempool } from "./client";
+import { BitcoinAccount } from "../types/bitcoin";
+import { fromBtcUnspentToMempoolUTXO, getBitcoinNetwork } from "../bitcoin";
+import { getClient } from "../client/bitcoin";
+import { BtcMempool } from "../client";
 import { prepareTx, toPsbt } from "xchains-bitcoin-ts/src/utils/bitcoin";
+import { AddressTxsUtxo } from "@mempool/mempool.js/lib/interfaces/bitcoin/addresses";
 
 bitcoin.initEccLib(ecc);
 const ECPair = ECPairFactory(ecc);
@@ -21,9 +22,15 @@ export async function sendBitcoin(
   const network = getBitcoinNetwork(networkName);
 
   // Fetch UTXOs for the sender's address
-  const utxos = await mempoolClient.addresses.getAddressTxsUtxo({
-    address: sender.address,
-  });
+  const utxos: AddressTxsUtxo[] =
+    networkName === "regtest"
+      ? (
+          await getClient().command("listunspent", 0, 9999999, [sender.address])
+        ).map(fromBtcUnspentToMempoolUTXO)
+      : await mempoolClient.addresses.getAddressTxsUtxo({
+          address: sender.address,
+        });
+
   const feeRate = (await mempoolClient.fees.getFeesRecommended()).hourFee;
   const rbf = false;
 

@@ -1,4 +1,4 @@
-import { sendBitcoin } from "@/transaction";
+import { sendBitcoin } from "@/transactions/sendBitcoin";
 import { getBitcoinNetwork, getPublicKeyFromPrivateKeyWIF } from "@/bitcoin";
 import { BitcoinAccount } from "@/types/bitcoin";
 import fs from "fs";

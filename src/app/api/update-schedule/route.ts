@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
 import cron from "node-cron";
-import { scheduledTransaction } from "@/example/scheduledTransaction";
 import { getCurrentSchedule, setCurrentSchedule } from "@/utils/cronSchedule";
+import prisma from "@/utils/prisma";
+import { bondingTxExp } from "@/example/bondingTxExp";
 
 let cronJob: cron.ScheduledTask | null = null;
 
-function scheduleTx() {
+async function scheduleTx() {
   if (cronJob) {
     cronJob.stop();
   }
   cronJob = cron.schedule(getCurrentSchedule(), async () => {
     try {
-      await scheduledTransaction();
-      console.log("Scheduled transaction executed successfully");
+      const result = await bondingTxExp();
+      if (result) {
+        const { txid, bondingAmount } = result;
+        console.log("Scheduled transaction executed successfully");
+
+        await prisma.bondingTransaction.create({
+          data: {
+            txid,
+            amount: BigInt(bondingAmount),
+          },
+        });
+      }
     } catch (error) {
       console.error("Error executing scheduled transaction:", error);
     }
