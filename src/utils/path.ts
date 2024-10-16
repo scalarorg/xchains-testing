@@ -43,3 +43,28 @@ export function getUnbondingServiceTxExpExamplePath() {
     "unbondingServiceTxExp.json"
   );
 }
+
+export function getFundingExpExamplePath() {
+  return path.join(__dirname, "..", "..", ".example", "fundingExp.json");
+}
+
+export function getAccountsPath(networkName: string, fileName: string) {
+  return path.join(
+    getBitcoinDirectoryPath(),
+    "accounts",
+    networkName,
+    fileName
+  );
+}
+
+export function getImportBtcAddressExamplePath() {
+  return path.join(
+    __dirname,
+    "..",
+    "..",
+    ".example",
+    "importBtcAddressExp.json"
+  );
+}
+
+

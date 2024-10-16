@@ -8,10 +8,15 @@ import mempoolJS from "@mempool/mempool.js";
 import path from "path";
 import * as fs from "fs";
 import { getNetworkConfigPath } from "@/utils/path";
+import { ProjectENV } from "@/env";
 
 // Read and parse the JSON configuration file
 const configPath = path.join(getNetworkConfigPath(), "mempool.json");
-const mempoolClientConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+const mempoolClientConfigFile = JSON.parse(
+  fs.readFileSync(configPath, "utf-8")
+);
+const mempoolClientConfig =
+  mempoolClientConfigFile[ProjectENV.MEMPOOL_CLIENT_TYPE];
 
 class BtcMempool {
   addresses: AddressInstance;

@@ -25,7 +25,7 @@ export async function sendBitcoin(
   const utxos: AddressTxsUtxo[] =
     networkName === "regtest"
       ? (
-          await getClient().command("listunspent", 0, 9999999, [sender.address])
+          await btcClient.command("listunspent", 0, 9999999, [sender.address])
         ).map(fromBtcUnspentToMempoolUTXO)
       : await mempoolClient.addresses.getAddressTxsUtxo({
           address: sender.address,

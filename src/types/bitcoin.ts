@@ -11,6 +11,7 @@ export enum AddressType {
 export interface BitcoinAccount {
   publicKey: string;
   address: string;
+  privateKeyHex: string;
   privateKeyWIF: string;
 }
 

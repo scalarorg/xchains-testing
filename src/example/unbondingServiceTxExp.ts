@@ -1,3 +1,4 @@
+import { ProjectENV } from "@/env";
 import { unbondingServiceTx } from "@/transactions/unbondingServiceTx";
 import { getUnbondingServiceTxExpExamplePath } from "@/utils/path";
 import fs from "fs";
@@ -16,7 +17,6 @@ export const unbondingServiceTxExp = async (): Promise<
   const stakerAccount = config.stakerAccount;
   const receiveAddress = config.receiveAddress;
   const hexTx = config.hexTx;
-  const covenantPublicKeys = config.covenantPublicKeys;
   const covenantQuorum = config.covenantQuorum;
   const burnContractAddress = config.burnContractAddress;
   const burnDestinationChain = config.burnDestinationChain;
@@ -25,6 +25,8 @@ export const unbondingServiceTxExp = async (): Promise<
   const tokenBurnAmount = config.tokenBurnAmount;
   const ethRpcUrl = config.ethRpcUrl;
   const ethPrivateKey = config.ethPrivateKey;
+
+  const covenantPublicKeys = ProjectENV.COVENANT_PUBLIC_KEYS.split(",");
 
   try {
     const txHash = await unbondingServiceTx(

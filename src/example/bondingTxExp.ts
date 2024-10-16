@@ -1,4 +1,5 @@
 import { getBitcoinNetwork, getPublicKeyFromPrivateKeyWIF } from "@/bitcoin";
+import { ProjectENV } from "@/env";
 import { sendBondingTx } from "@/transactions/sendBondingTx";
 import { getBondingTxExpExamplePath } from "@/utils/path";
 import fs from "fs";
@@ -15,8 +16,6 @@ export const bondingTxExp = async (): Promise<
 
   const networkName = config.networkName;
   const stakerAccount = config.stakerAccount;
-  const protocolPublicKey = config.protocolPublicKey;
-  const covenantPublicKeys = config.covenantPublicKeys;
   const covenantQuorum = config.covenantQuorum;
   const tag = config.tag;
   const version = config.version;
@@ -24,6 +23,9 @@ export const bondingTxExp = async (): Promise<
   const recipientEthAddress = config.recipientEthAddress;
   const mintAddress = config.mintAddress;
   const bondingAmount = config.bondingAmount;
+
+  const protocolPublicKey = ProjectENV.PROTOCOL_PUBLIC_KEY;
+  const covenantPublicKeys = ProjectENV.COVENANT_PUBLIC_KEYS.split(",");
 
   stakerAccount.publicKey = getPublicKeyFromPrivateKeyWIF(
     stakerAccount.privateKeyWIF,

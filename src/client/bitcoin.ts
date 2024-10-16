@@ -2,10 +2,11 @@ import { getNetworkConfigPath } from "@/utils/path";
 import Client from "bitcoin-core-ts";
 import * as fs from "fs";
 import path from "path";
-
+import { ProjectENV } from "@/env";
 // Read and parse the JSON configuration file
 const configPath = path.join(getNetworkConfigPath(), "btcClient.json");
-const btcClientConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+const btcClientConfigFile = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+const btcClientConfig = btcClientConfigFile[ProjectENV.BTC_CLIENT_TYPE];
 
 let client: Client;
 export const getClient = function () {

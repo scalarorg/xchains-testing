@@ -45,7 +45,7 @@ export async function sendBondingTx(
   const utxos: AddressTxsUtxo[] =
     networkName === "regtest"
       ? (
-          await getClient().command("listunspent", 0, 9999999, [
+          await btcClient.command("listunspent", 0, 9999999, [
             stakerAccount.address,
           ])
         ).map(fromBtcUnspentToMempoolUTXO)
@@ -58,7 +58,6 @@ export async function sendBondingTx(
   const rbf = true; // Replace by fee, need to be true if we want to replace the transaction when the fee is low
   const { psbt: unsignedVaultPsbt, feeEstimate: fee } =
     await staker.getUnsignedVaultPsbt(utxos, bondingAmount, feeRate, rbf);
-  console.log(unsignedVaultPsbt);
 
   // Simulate signing
   const signedPsbt = psbt.signInputs(
