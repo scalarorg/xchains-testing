@@ -1,5 +1,6 @@
 import { getClient } from "@/client/bitcoin";
-import { BitcoinAccount } from "@/types/bitcoin";
+import { ProjectENV } from "@/env";
+import { StakerAccount } from "@/types/staker";
 import { getAccountsPath, getImportBtcAddressExamplePath } from "@/utils/path";
 import fs from "fs";
 
@@ -15,14 +16,14 @@ async function importBtcAddressesFromFile() {
     const configPath = getImportBtcAddressExamplePath();
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 
-    const networkName = config.networkName;
+    const networkName = ProjectENV.NETWORK;
     const accountFileName = config.accountFileName;
 
     const accountsFilePath = getAccountsPath(networkName, accountFileName);
     const importAddresses: BtcAddress[] = JSON.parse(
       fs.readFileSync(accountsFilePath, "utf-8")
-    ).map((account: BitcoinAccount) => ({
-      address: account.address,
+    ).map((account: StakerAccount) => ({
+      address: account.btcAddress,
     }));
 
     // Import each address

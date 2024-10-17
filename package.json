@@ -14,6 +14,8 @@
     "unbondingServiceTxExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/unbondingServiceTxExp.ts",
     "importBtcAddress": "node -r dotenv/config --env-file=.env.local --import tsx src/example/importBtcAddress.ts",
     "fundingExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/fundingExp.ts",
+    "fundingAccExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/fundingAccExp.ts",
+    "stakingExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/stakingExp.ts",
     "unstakingExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/unstakingExp.ts"
   },
   "dependencies": {

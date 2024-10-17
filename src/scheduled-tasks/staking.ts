@@ -1,6 +1,7 @@
 import { ProjectENV } from "@/env";
 import { sendBondingTx } from "@/transactions/sendBondingTx";
 import { BitcoinAccount } from "@/types/bitcoin";
+import { StakerAccount } from "@/types/staker";
 import { getAccountsPath, getStakingConfigPath } from "@/utils/path";
 import prisma from "@/utils/prisma";
 import fs from "fs";
@@ -19,7 +20,6 @@ export const performStaking = async (): Promise<
     tag,
     version,
     destChainId,
-    recipientEthAddress,
     mintAddress,
     stakingAmount,
     accountFileName,
@@ -28,25 +28,61 @@ export const performStaking = async (): Promise<
   const protocolPublicKey = ProjectENV.PROTOCOL_PUBLIC_KEY;
   const covenantPublicKeys = ProjectENV.COVENANT_PUBLIC_KEYS.split(",");
 
-  //   Get one user to stake
+  // Get one user to stake
   const accountsFilePath = getAccountsPath(networkName, accountFileName);
-  const candidateAccounts: BitcoinAccount[] = JSON.parse(
+  const candidateAccounts: StakerAccount[] = JSON.parse(
     fs.readFileSync(accountsFilePath, "utf-8")
   );
 
-  // Choose a random account from the candidate accounts
-  const randomIndex = Math.floor(Math.random() * candidateAccounts.length);
-  const selectedAccount = candidateAccounts[randomIndex];
+  // Get funded accounts from prisma
+  const fundedAccounts = await prisma.fundedAccount.findMany({
+    where: { status: "FUNDED" },
+    select: { btcAddress: true },
+  });
+
+  // Create a Set of funded BTC addresses for efficient lookup
+  const fundedBtcAddresses = new Set(
+    fundedAccounts.map((account) => account.btcAddress)
+  );
+
+  // Filter candidate accounts to only include funded accounts
+  const fundedCandidateAccounts = candidateAccounts.filter((account) =>
+    fundedBtcAddresses.has(account.btcAddress)
+  );
+
+  if (fundedCandidateAccounts.length === 0) {
+    console.log("No funded accounts available for staking");
+    return;
+  }
+
+  // Choose a random account from the funded candidate accounts
+  const randomIndex = Math.floor(
+    Math.random() * fundedCandidateAccounts.length
+  );
+  const selectedAccount = fundedCandidateAccounts[randomIndex];
 
   // Update the stakerAccount with the randomly selected account
-  const stakerAccount = {
-    address: selectedAccount.address,
-    privateKeyWIF: selectedAccount.privateKeyWIF,
-    publicKey: selectedAccount.publicKey,
-    privateKeyHex: selectedAccount.privateKeyHex,
+  const stakerAccount: BitcoinAccount = {
+    address: selectedAccount.btcAddress,
+    privateKeyWIF: selectedAccount.btcPrivateKeyWIF,
+    publicKey: selectedAccount.btcPublicKey,
+    privateKeyHex: selectedAccount.btcPrivateKeyHex,
   };
 
-  //   TODO: implement checking balance and if this person has already staked
+  // Check if this account has already staked
+  const existingStake = await prisma.bondingTransaction.findFirst({
+    where: {
+      staker_address: stakerAccount.address,
+      status: { in: ["STAKED"] },
+    },
+  });
+
+  if (existingStake) {
+    console.log(`Account ${stakerAccount.address} has already staked`);
+    return;
+  }
+
+  // TODO: implement checking balance
 
   try {
     const txid = await sendBondingTx(
@@ -57,7 +93,7 @@ export const performStaking = async (): Promise<
       tag,
       version,
       destChainId,
-      recipientEthAddress,
+      selectedAccount.ethAddress,
       mintAddress,
       stakingAmount,
       networkName
@@ -70,6 +106,10 @@ export const performStaking = async (): Promise<
         staker_address: stakerAccount.address,
         status: "PENDING",
       },
+    });
+    await prisma.fundedAccount.update({
+      where: { btcAddress: stakerAccount.address },
+      data: { status: "STAKED" },
     });
     return { txid, stakingAmount };
   } catch (error) {

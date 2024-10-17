@@ -23,3 +23,9 @@ model BondingTransaction {
 
   // Add any other fields that might be relevant based on the usage in unstaking.ts
 }
+
+model FundedAccount {
+  id         String @id @default(uuid())
+  btcAddress String @unique
+  status     String
+}

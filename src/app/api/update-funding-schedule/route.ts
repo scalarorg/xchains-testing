@@ -1,22 +1,24 @@
 import { NextResponse } from "next/server";
 import cron from "node-cron";
 import {
-  getCurrentStakingSchedule,
-  setCurrentStakingSchedule,
+  getCurrentFundingSchedule,
+  setCurrentFundingSchedule,
 } from "@/utils/cronSchedule";
-import { performStaking } from "@/scheduled-tasks/staking";
+import { performFunding } from "@/scheduled-tasks/funding";
 
 let cronJob: cron.ScheduledTask | null = null;
 
-async function scheduleStakingTx() {
+async function scheduleFundingTx() {
   if (cronJob) {
     cronJob.stop();
   }
-  cronJob = cron.schedule(getCurrentStakingSchedule(), async () => {
+  cronJob = cron.schedule(getCurrentFundingSchedule(), async () => {
     try {
-      await performStaking();
+      const result = await performFunding();
+      console.log("Scheduled funding transaction executed successfully");
+      console.log(result);
     } catch (error) {
-      console.error("Error executing scheduled staking transaction:", error);
+      console.error("Error executing scheduled funding transaction:", error);
     }
   });
 }
@@ -26,8 +28,8 @@ export async function POST(request: Request) {
   const { schedule } = body;
 
   if (cron.validate(schedule)) {
-    setCurrentStakingSchedule(schedule);
-    scheduleStakingTx();
+    setCurrentFundingSchedule(schedule);
+    scheduleFundingTx();
     return NextResponse.json(
       { message: "Schedule updated successfully" },
       { status: 200 }
@@ -41,4 +43,4 @@ export async function POST(request: Request) {
 }
 
 // Initialize the cron job when the server starts
-scheduleStakingTx();
+scheduleFundingTx();

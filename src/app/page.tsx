@@ -8,6 +8,8 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [unstakingSchedule, setUnstakingSchedule] = useState("");
   const [currentUnstakingSchedule, setCurrentUnstakingSchedule] = useState("");
+  const [fundingSchedule, setFundingSchedule] = useState("");
+  const [currentFundingSchedule, setCurrentFundingSchedule] = useState("");
 
   useEffect(() => {
     fetchCurrentSchedules();
@@ -17,10 +19,13 @@ export default function Home() {
     try {
       const stakingResponse = await fetch("/api/get-staking-schedule");
       const unstakingResponse = await fetch("/api/get-unstaking-schedule");
+      const fundingResponse = await fetch("/api/get-funding-schedule");
       const stakingData = await stakingResponse.json();
       const unstakingData = await unstakingResponse.json();
+      const fundingData = await fundingResponse.json();
       setCurrentSchedule(stakingData.schedule);
       setCurrentUnstakingSchedule(unstakingData.schedule);
+      setCurrentFundingSchedule(fundingData.schedule);
     } catch (error) {
       console.error("Error fetching current schedules:", error);
     }
@@ -28,12 +33,16 @@ export default function Home() {
 
   const handleSubmit = async (
     e: React.FormEvent,
-    type: "staking" | "unstaking"
+    type: "staking" | "unstaking" | "funding"
   ) => {
     e.preventDefault();
     try {
       const scheduleToUpdate =
-        type === "staking" ? schedule : unstakingSchedule;
+        type === "staking"
+          ? schedule
+          : type === "unstaking"
+          ? unstakingSchedule
+          : fundingSchedule;
       const response = await fetch(`/api/update-${type}-schedule`, {
         method: "POST",
         headers: {
@@ -60,6 +69,7 @@ export default function Home() {
       <p className="mb-4">
         Current unstaking schedule: {currentUnstakingSchedule}
       </p>
+      <p className="mb-4">Current funding schedule: {currentFundingSchedule}</p>
       <form onSubmit={(e) => handleSubmit(e, "staking")} className="mb-4">
         <input
           type="text"
@@ -82,6 +92,18 @@ export default function Home() {
         />
         <button type="submit" className="bg-green-500 text-white p-2 rounded">
           Update Unstaking Schedule
+        </button>
+      </form>
+      <form onSubmit={(e) => handleSubmit(e, "funding")} className="mb-4">
+        <input
+          type="text"
+          value={fundingSchedule}
+          onChange={(e) => setFundingSchedule(e.target.value)}
+          placeholder="Enter funding cron schedule"
+          className="border p-2 mr-2"
+        />
+        <button type="submit" className="bg-purple-500 text-white p-2 rounded">
+          Update Funding Schedule
         </button>
       </form>
       {message && <p className="text-green-500">{message}</p>}

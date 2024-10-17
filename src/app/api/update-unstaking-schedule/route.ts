@@ -15,7 +15,6 @@ async function scheduleUnstakingTx() {
   cronJob = cron.schedule(getCurrentUnstakingSchedule(), async () => {
     try {
       await performUnstaking();
-      console.log("Scheduled unstaking executed successfully");
     } catch (error) {
       console.error("Error executing scheduled unstaking:", error);
     }

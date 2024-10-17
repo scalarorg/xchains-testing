@@ -1,29 +1,33 @@
 import path from "path";
 import { generateKeys } from "./key";
-import { BitcoinAccount } from "./types/bitcoin";
+import { StakerAccount } from "./types/staker";
 import * as fs from "fs";
 import { getAddressGeneratorPath } from "./utils/path";
+import { ethers } from "ethers";
 
-export function generateBtcAccounts(
+export function generateAccounts(
   count: number,
   typeName: string,
   networkName: string
-): BitcoinAccount[] {
-  const accounts: BitcoinAccount[] = [];
+): StakerAccount[] {
+  const accounts: StakerAccount[] = [];
   for (let i = 0; i < count; i++) {
     const keys = generateKeys(typeName, networkName);
+    const ethWallet = ethers.Wallet.createRandom();
     accounts.push({
-      publicKey: keys.publicKey,
-      address: keys.address!,
-      privateKeyHex: keys.privateKeyHex,
-      privateKeyWIF: keys.privateKeyWIF,
+      btcPublicKey: keys.publicKey,
+      btcAddress: keys.address!,
+      btcPrivateKeyHex: keys.privateKeyHex,
+      btcPrivateKeyWIF: keys.privateKeyWIF,
+      ethAddress: ethWallet.address,
+      ethPrivateKey: ethWallet.privateKey,
     });
   }
   return accounts;
 }
 
 export function saveAccountsToJson(
-  accounts: BitcoinAccount[],
+  accounts: StakerAccount[],
   networkName: string,
   filename: string
 ): void {
@@ -38,6 +42,6 @@ const typeName = "P2WPKH";
 const networkName = "regtest";
 const filename = "01.json";
 
-const accounts = generateBtcAccounts(numberOfAccounts, typeName, networkName);
+const accounts = generateAccounts(numberOfAccounts, typeName, networkName);
 console.log(accounts);
 saveAccountsToJson(accounts, networkName, filename);

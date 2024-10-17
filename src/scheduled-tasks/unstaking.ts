@@ -2,6 +2,7 @@ import { callXchainsApi } from "@/app/api/xchains-api";
 import { ProjectENV } from "@/env";
 import { unbondingServiceTx } from "@/transactions/unbondingServiceTx";
 import { BitcoinAccount } from "@/types/bitcoin";
+import { StakerAccount } from "@/types/staker";
 import { getAccountsPath, getUnstakingConfigPath } from "@/utils/path";
 import prisma from "@/utils/prisma";
 import fs from "fs";
@@ -22,7 +23,6 @@ export const performUnstaking = async (): Promise<
     burnDestinationAddress,
     sBTCContractAddress,
     ethRpcUrl,
-    ethPrivateKey,
     accountFileName,
   } = config;
   const networkName = ProjectENV.NETWORK;
@@ -46,7 +46,7 @@ export const performUnstaking = async (): Promise<
     return;
   }
 
-  //   Get more info from xchains-api
+  // Get more info from xchains-api
   const vaultTxsData = await callXchainsApi("v1/vault/searchVault", "POST", {
     stakerPubkey: bondingTx.staker_pubkey.slice(2),
   });
@@ -67,11 +67,11 @@ export const performUnstaking = async (): Promise<
 
   // Get the original account that made the bonding tx
   const accountsFilePath = getAccountsPath(networkName, accountFileName);
-  const candidateAccounts: BitcoinAccount[] = JSON.parse(
+  const candidateAccounts: StakerAccount[] = JSON.parse(
     fs.readFileSync(accountsFilePath, "utf-8")
   );
   const selectedAccount = candidateAccounts.find(
-    (account) => account.address === bondingTx.staker_address
+    (account) => account.btcAddress === bondingTx.staker_address
   );
 
   if (!selectedAccount) {
@@ -79,11 +79,11 @@ export const performUnstaking = async (): Promise<
     return;
   }
 
-  const stakerAccount = {
-    address: selectedAccount.address,
-    privateKeyWIF: selectedAccount.privateKeyWIF,
-    publicKey: selectedAccount.publicKey,
-    privateKeyHex: selectedAccount.privateKeyHex,
+  const stakerAccount: BitcoinAccount = {
+    address: selectedAccount.btcAddress,
+    privateKeyWIF: selectedAccount.btcPrivateKeyWIF,
+    publicKey: selectedAccount.btcPublicKey,
+    privateKeyHex: selectedAccount.btcPrivateKeyHex,
   };
   const receiveAddress = stakerAccount.address;
 
@@ -100,7 +100,7 @@ export const performUnstaking = async (): Promise<
       sBTCContractAddress,
       tokenBurnAmount,
       ethRpcUrl,
-      ethPrivateKey,
+      selectedAccount.ethPrivateKey,
       networkName
     );
     console.log("Unstaking transaction sent successfully. TX Hash:", txHash);
@@ -108,6 +108,14 @@ export const performUnstaking = async (): Promise<
       where: { txid: bondingTx.txid },
       data: { status: "UNSTAKED" },
     });
+    // Update the fundedAccount status to 'UNSTAKED'
+    await prisma.fundedAccount.update({
+      where: { btcAddress: stakerAccount.address },
+      data: { status: "FUNDED" },
+    });
+    console.log(
+      `Updated fundedAccount status to FUNDED for address: ${stakerAccount.address}`
+    );
     return { txHash, tokenBurnAmount };
   } catch (error) {
     console.error("Error sending unstaking transaction:", error);

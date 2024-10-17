@@ -88,3 +88,14 @@ export function getUnstakingConfigPath() {
     "unstaking.json"
   );
 }
+
+export function getFundingConfigPath() {
+  return path.join(
+    __dirname,
+    "..",
+    "..",
+    ".bitcoin",
+    "scheduled",
+    "funding.json"
+  );
+}
