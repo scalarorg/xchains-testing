@@ -14,8 +14,12 @@ generator client {
 }
 
 model BondingTransaction {
-  id        Int      @id @default(autoincrement())
-  txid      String   @unique
-  amount    BigInt
-  timestamp DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  txid           String   @unique
+  staker_pubkey  String
+  staker_address String
+  createdAt      DateTime @default(now())
+  status         String   @default("PENDING")
+
+  // Add any other fields that might be relevant based on the usage in unstaking.ts
 }

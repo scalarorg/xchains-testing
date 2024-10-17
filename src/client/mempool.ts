@@ -15,8 +15,7 @@ const configPath = path.join(getNetworkConfigPath(), "mempool.json");
 const mempoolClientConfigFile = JSON.parse(
   fs.readFileSync(configPath, "utf-8")
 );
-const mempoolClientConfig =
-  mempoolClientConfigFile[ProjectENV.MEMPOOL_CLIENT_TYPE];
+const mempoolClientConfig = mempoolClientConfigFile[ProjectENV.NETWORK];
 
 class BtcMempool {
   addresses: AddressInstance;

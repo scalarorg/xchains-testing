@@ -67,4 +67,24 @@ export function getImportBtcAddressExamplePath() {
   );
 }
 
+export function getStakingConfigPath() {
+  return path.join(
+    __dirname,
+    "..",
+    "..",
+    ".bitcoin",
+    "scheduled",
+    "staking.json"
+  );
+}
 
+export function getUnstakingConfigPath() {
+  return path.join(
+    __dirname,
+    "..",
+    "..",
+    ".bitcoin",
+    "scheduled",
+    "unstaking.json"
+  );
+}

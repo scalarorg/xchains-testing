@@ -6,7 +6,7 @@ import { ProjectENV } from "@/env";
 // Read and parse the JSON configuration file
 const configPath = path.join(getNetworkConfigPath(), "btcClient.json");
 const btcClientConfigFile = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-const btcClientConfig = btcClientConfigFile[ProjectENV.BTC_CLIENT_TYPE];
+const btcClientConfig = btcClientConfigFile[ProjectENV.NETWORK];
 
 let client: Client;
 export const getClient = function () {

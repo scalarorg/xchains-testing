@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getCurrentSchedule } from "@/utils/cronSchedule";
+import { getCurrentUnstakingSchedule } from "@/utils/cronSchedule";
 
 export async function GET() {
-  const schedule = getCurrentSchedule();
+  const schedule = getCurrentUnstakingSchedule();
   return NextResponse.json({ schedule });
 }

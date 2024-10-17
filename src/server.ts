@@ -5,7 +5,7 @@ import prisma from "./utils/prisma";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
-const port = 3000;
+let port = 3002;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
@@ -18,7 +18,7 @@ prisma
   );
 
 app.prepare().then(() => {
-  createServer(async (req: any, res: any) => {
+  const server = createServer(async (req: any, res: any) => {
     try {
       const parsedUrl = parse(req.url, true);
       await handle(req, res, parsedUrl);
@@ -27,17 +27,29 @@ app.prepare().then(() => {
       res.statusCode = 500;
       res.end("internal server error");
     }
-  })
-    .once("error", (err: any) => {
-      console.error(err);
-      process.exit(1);
-    })
-    .listen(port, () => {
-      console.log(`> Ready on http://${hostname}:${port}`);
-      // Disconnect Prisma when the server is closed
-      process.on("SIGTERM", () => {
-        console.log("SIGTERM signal received: closing HTTP server");
-        prisma.$disconnect();
+  });
+
+  const startServer = () => {
+    server
+      .listen(port, () => {
+        console.log(`> Ready on http://${hostname}:${port}`);
+        // Disconnect Prisma when the server is closed
+        process.on("SIGTERM", () => {
+          console.log("SIGTERM signal received: closing HTTP server");
+          prisma.$disconnect();
+        });
+      })
+      .on("error", (e: NodeJS.ErrnoException) => {
+        if (e.code === "EADDRINUSE") {
+          console.log(`Port ${port} is in use, trying ${port + 1}`);
+          port++;
+          startServer();
+        } else {
+          console.error(e);
+          process.exit(1);
+        }
       });
-    });
+  };
+
+  startServer();
 });

@@ -13,13 +13,15 @@
     "bondingTxExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/bondingTxExp.ts",
     "unbondingServiceTxExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/unbondingServiceTxExp.ts",
     "importBtcAddress": "node -r dotenv/config --env-file=.env.local --import tsx src/example/importBtcAddress.ts",
-    "fundingExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/fundingExp.ts"
+    "fundingExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/fundingExp.ts",
+    "unstakingExp": "node -r dotenv/config --env-file=.env.local --import tsx src/example/unstakingExp.ts"
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.1.1",
     "@mempool/mempool.js": "^2.3.0",
     "@prisma/client": "^5.20.0",
     "@types/node-cron": "^3.0.11",
+    "axios": "^1.7.7",
     "bitcoin-core-ts": "^3.0.3",
     "bitcoinjs-lib": "^6.1.6",
     "dotenv": "^16.4.5",
