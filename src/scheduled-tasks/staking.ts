@@ -2,7 +2,7 @@ import { ProjectENV } from "@/env";
 import { sendBondingTx } from "@/transactions/sendBondingTx";
 import { BitcoinAccount } from "@/types/bitcoin";
 import { StakerAccount } from "@/types/staker";
-import { getAccountsPath, getStakingConfigPath } from "@/utils/path";
+import { getAccountsPath } from "@/utils/path";
 import prisma from "@/utils/prisma";
 import fs from "fs";
 
@@ -13,20 +13,29 @@ export const performStaking = async (): Promise<
     }
   | undefined
 > => {
-  const configPath = getStakingConfigPath();
-  const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-  const {
-    covenantQuorum,
-    tag,
-    version,
-    destChainId,
-    mintAddress,
-    stakingAmount,
-    accountFileName,
-  } = config;
   const networkName = ProjectENV.NETWORK;
   const protocolPublicKey = ProjectENV.PROTOCOL_PUBLIC_KEY;
   const covenantPublicKeys = ProjectENV.COVENANT_PUBLIC_KEYS.split(",");
+  const accountFileName = ProjectENV.ACCOUNT_FILE_NAME;
+  const stakingAmount = Number(ProjectENV.STAKING_AMOUNT);
+  const mintingAmount = Number(ProjectENV.MINTING_AMOUNT);
+  const tag = ProjectENV.TAG;
+  const version = Number(ProjectENV.VERSION);
+  const destChainId = ProjectENV.DEST_CHAIN_ID;
+  const mintAddress = ProjectENV.MINT_ADDRESS;
+  const covenantQuorum = Number(ProjectENV.COVENANT_QUORUM);
+
+  console.log("networkName: ", networkName);
+  console.log("protocolPublicKey: ", protocolPublicKey);
+  console.log("covenantPublicKeys: ", covenantPublicKeys);
+  console.log("accountFileName: ", accountFileName);
+  console.log("stakingAmount: ", stakingAmount);
+  console.log("mintingAmount: ", mintingAmount);
+  console.log("tag: ", tag);
+  console.log("version: ", version);
+  console.log("destChainId: ", destChainId);
+  console.log("mintAddress: ", mintAddress);
+  console.log("covenantQuorum: ", covenantQuorum);
 
   // Get one user to stake
   const accountsFilePath = getAccountsPath(networkName, accountFileName);
@@ -42,7 +51,7 @@ export const performStaking = async (): Promise<
 
   // Create a Set of funded BTC addresses for efficient lookup
   const fundedBtcAddresses = new Set(
-    fundedAccounts.map((account) => account.btcAddress)
+    fundedAccounts.map((account: { btcAddress: string }) => account.btcAddress)
   );
 
   // Filter candidate accounts to only include funded accounts
@@ -85,7 +94,7 @@ export const performStaking = async (): Promise<
   // TODO: implement checking balance
 
   try {
-    const txid = await sendBondingTx(
+    const { txid, txhex } = await sendBondingTx(
       stakerAccount,
       protocolPublicKey,
       covenantPublicKeys,
@@ -96,12 +105,16 @@ export const performStaking = async (): Promise<
       selectedAccount.ethAddress,
       mintAddress,
       stakingAmount,
+      mintingAmount,
       networkName
     );
     console.log("Staking transaction sent successfully. TXID:", txid);
     await prisma.bondingTransaction.create({
       data: {
         txid,
+        txhex,
+        bondAmount: BigInt(stakingAmount),
+        mintAmount: BigInt(mintingAmount),
         staker_pubkey: stakerAccount.publicKey,
         staker_address: stakerAccount.address,
         status: "PENDING",
@@ -111,6 +124,9 @@ export const performStaking = async (): Promise<
       where: { btcAddress: stakerAccount.address },
       data: { status: "STAKED" },
     });
+
+    console.log("--- Staking completed");
+
     return { txid, stakingAmount };
   } catch (error) {
     console.error("Error sending staking transaction:", error);

@@ -1,8 +1,4 @@
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export function getBitcoinDirectoryPath() {
   return path.join(__dirname, "..", "..", ".bitcoin");
@@ -97,5 +93,16 @@ export function getFundingConfigPath() {
     ".bitcoin",
     "scheduled",
     "funding.json"
+  );
+}
+
+export function getReturnFundsConfigPath() {
+  return path.join(
+    __dirname,
+    "..",
+    "..",
+    ".bitcoin",
+    "scheduled",
+    "returnFunds.json"
   );
 }

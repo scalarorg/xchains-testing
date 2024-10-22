@@ -1,11 +1,11 @@
 import { BitcoinAccount } from "../types/bitcoin";
-import { getBitcoinNetwork } from "../bitcoin";
-import { BtcMempool } from "../client";
+import { getBitcoinNetwork } from "../utils/bitcoin";
 import * as vault from "xchains-bitcoin-ts/src/index";
 import { psbt } from "xchains-bitcoin-ts/src/utils/psbt";
 import { ethers } from "ethers";
 import burnContractJSON from "@/abis/burn-contract.json";
 import sBTCJSON from "@/abis/sbtc.json";
+import { getMempoolAxiosClient } from "@/client/mempool-axios";
 
 export async function unbondingServiceTx(
   stakerAccount: BitcoinAccount,
@@ -22,7 +22,7 @@ export async function unbondingServiceTx(
   ethPrivateKey: string,
   networkName: string = "testnet"
 ): Promise<string> {
-  const mempoolClient = new BtcMempool();
+  const mempoolAxiosClient = getMempoolAxiosClient();
   const network = getBitcoinNetwork(networkName);
   // ---
   const burnContractABI = burnContractJSON.abi;
@@ -36,8 +36,7 @@ export async function unbondingServiceTx(
   );
   const sBTC = new ethers.Contract(sBTCContractAddress, sBTCABI, signer);
   // ---
-  const { fees } = mempoolClient;
-  const { fastestFee: feeRate } = await fees.getFeesRecommended();
+  const { fastestFee: feeRate } = await mempoolAxiosClient.getFeesRecommended();
   const rbf = true;
   const unStaker = new vault.UnStaker(
     stakerAccount.address,
@@ -45,8 +44,11 @@ export async function unbondingServiceTx(
     covenantPublicKeys,
     covenantQuorum
   );
-  const { psbt: unsignedPsbt, burningLeaf } =
-    await unStaker.getUnsignedBurningPsbt(receiveAddress, feeRate, rbf);
+  const { psbt: unsignedPsbt } = await unStaker.getUnsignedBurningPsbt(
+    receiveAddress,
+    feeRate,
+    rbf
+  );
 
   // Simulate staker signing
   const stakerSignedPsbt = psbt.signInputs(

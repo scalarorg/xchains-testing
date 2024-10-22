@@ -1,4 +1,7 @@
-import { getBitcoinNetwork, getPublicKeyFromPrivateKeyWIF } from "@/bitcoin";
+import {
+  getBitcoinNetwork,
+  getPublicKeyFromPrivateKeyWIF,
+} from "@/utils/bitcoin";
 import { ProjectENV } from "@/env";
 import { sendBondingTx } from "@/transactions/sendBondingTx";
 import { getBondingTxExpExamplePath } from "@/utils/path";
@@ -23,7 +26,7 @@ export const bondingTxExp = async (): Promise<
   const recipientEthAddress = config.recipientEthAddress;
   const mintAddress = config.mintAddress;
   const bondingAmount = config.bondingAmount;
-
+  const mintingAmount = config.mintingAmount;
   const protocolPublicKey = ProjectENV.PROTOCOL_PUBLIC_KEY;
   const covenantPublicKeys = ProjectENV.COVENANT_PUBLIC_KEYS.split(",");
 
@@ -33,7 +36,7 @@ export const bondingTxExp = async (): Promise<
   );
 
   try {
-    const txid = await sendBondingTx(
+    const { txid } = await sendBondingTx(
       stakerAccount,
       protocolPublicKey,
       covenantPublicKeys,
@@ -44,6 +47,7 @@ export const bondingTxExp = async (): Promise<
       recipientEthAddress,
       mintAddress,
       bondingAmount,
+      mintingAmount,
       networkName
     );
     console.log("Bonding transaction sent successfully. TXID:", txid);

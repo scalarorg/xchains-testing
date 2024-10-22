@@ -5,19 +5,9 @@ import { DifficultyInstance } from "@mempool/mempool.js/lib/interfaces/bitcoin/d
 import { FeeInstance } from "@mempool/mempool.js/lib/interfaces/bitcoin/fees";
 import { TxInstance } from "@mempool/mempool.js/lib/interfaces/bitcoin/transactions";
 import mempoolJS from "@mempool/mempool.js";
-import path from "path";
-import * as fs from "fs";
-import { getNetworkConfigPath } from "@/utils/path";
 import { ProjectENV } from "@/env";
 
-// Read and parse the JSON configuration file
-const configPath = path.join(getNetworkConfigPath(), "mempool.json");
-const mempoolClientConfigFile = JSON.parse(
-  fs.readFileSync(configPath, "utf-8")
-);
-const mempoolClientConfig = mempoolClientConfigFile[ProjectENV.NETWORK];
-
-class BtcMempool {
+export class BtcMempool {
   addresses: AddressInstance;
   blocks: BlockInstance;
   difficulty: DifficultyInstance;
@@ -28,8 +18,8 @@ class BtcMempool {
     const {
       bitcoin: { addresses, blocks, difficulty, fees, mempool, transactions },
     } = mempoolJS({
-      hostname: mempoolClientConfig.hostname,
-      network: mempoolClientConfig.network,
+      hostname: ProjectENV.MEMPOOL_WEB,
+      network: ProjectENV.NETWORK,
     });
 
     this.addresses = addresses;
@@ -40,5 +30,3 @@ class BtcMempool {
     this.transactions = transactions;
   }
 }
-
-export default BtcMempool;

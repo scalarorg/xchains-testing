@@ -1,7 +1,7 @@
 import { getClient } from "@/client/bitcoin";
 import { ProjectENV } from "@/env";
 import { StakerAccount } from "@/types/staker";
-import { getAccountsPath, getImportBtcAddressExamplePath } from "@/utils/path";
+import { getAccountsPath } from "@/utils/path";
 import fs from "fs";
 
 interface BtcAddress {
@@ -10,14 +10,12 @@ interface BtcAddress {
   rescan?: boolean;
 }
 
-async function importBtcAddressesFromFile() {
+export async function importBtcAddressesFromFile() {
   try {
     const btcClient = getClient();
-    const configPath = getImportBtcAddressExamplePath();
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 
     const networkName = ProjectENV.NETWORK;
-    const accountFileName = config.accountFileName;
+    const accountFileName = ProjectENV.ACCOUNT_FILE_NAME;
 
     const accountsFilePath = getAccountsPath(networkName, accountFileName);
     const importAddresses: BtcAddress[] = JSON.parse(
@@ -43,5 +41,3 @@ async function importBtcAddressesFromFile() {
     throw error;
   }
 }
-
-importBtcAddressesFromFile();

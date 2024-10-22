@@ -2,11 +2,14 @@ import * as bitcoin from "bitcoinjs-lib";
 import { ECPairFactory } from "ecpair";
 import * as ecc from "tiny-secp256k1";
 import { BitcoinAccount } from "../types/bitcoin";
-import { fromBtcUnspentToMempoolUTXO, getBitcoinNetwork } from "../bitcoin";
+import {
+  fromBtcUnspentToMempoolUTXO,
+  getBitcoinNetwork,
+} from "../utils/bitcoin";
 import { getClient } from "../client/bitcoin";
-import { BtcMempool } from "../client";
 import { prepareTx, toPsbt } from "xchains-bitcoin-ts/src/utils/bitcoin";
 import { AddressTxsUtxo } from "@mempool/mempool.js/lib/interfaces/bitcoin/addresses";
+import { getMempoolAxiosClient } from "@/client/mempool-axios";
 
 bitcoin.initEccLib(ecc);
 const ECPair = ECPairFactory(ecc);
@@ -17,7 +20,7 @@ export async function sendBitcoin(
   amount: number,
   networkName: string = "testnet"
 ): Promise<string> {
-  const mempoolClient = new BtcMempool();
+  const mempoolAxiosClient = getMempoolAxiosClient();
   const btcClient = getClient();
   const network = getBitcoinNetwork(networkName);
 
@@ -27,11 +30,9 @@ export async function sendBitcoin(
       ? (
           await btcClient.command("listunspent", 0, 9999999, [sender.address])
         ).map(fromBtcUnspentToMempoolUTXO)
-      : await mempoolClient.addresses.getAddressTxsUtxo({
-          address: sender.address,
-        });
+      : await mempoolAxiosClient.getAddressTxsUtxo(sender.address);
 
-  const feeRate = (await mempoolClient.fees.getFeesRecommended()).hourFee;
+  const feeRate = (await mempoolAxiosClient.getFeesRecommended()).hourFee;
   const rbf = false;
 
   const outputs = [
@@ -41,7 +42,7 @@ export async function sendBitcoin(
     },
   ];
 
-  let { ok, error } = prepareTx({
+  const { ok, error } = prepareTx({
     inputs: [],
     outputs,
     regularUTXOs: utxos,
@@ -61,6 +62,10 @@ export async function sendBitcoin(
 
   // Sign the inputs
   const keyPair = ECPair.fromWIF(sender.privateKeyWIF, network);
+  // const keyPair = ECPair.fromWIF(
+  //   "cTwfZgRc36JCqV3EJh2tsq4toFFjTvgSxW4aVySwwACTkuBmVPWs",
+  //   network
+  // );
   psbt.signAllInputs(keyPair);
 
   // Validate and finalize the transaction

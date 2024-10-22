@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Home() {
   const [schedule, setSchedule] = useState("");
@@ -10,26 +10,8 @@ export default function Home() {
   const [currentUnstakingSchedule, setCurrentUnstakingSchedule] = useState("");
   const [fundingSchedule, setFundingSchedule] = useState("");
   const [currentFundingSchedule, setCurrentFundingSchedule] = useState("");
-
-  useEffect(() => {
-    fetchCurrentSchedules();
-  }, []);
-
-  const fetchCurrentSchedules = async () => {
-    try {
-      const stakingResponse = await fetch("/api/get-staking-schedule");
-      const unstakingResponse = await fetch("/api/get-unstaking-schedule");
-      const fundingResponse = await fetch("/api/get-funding-schedule");
-      const stakingData = await stakingResponse.json();
-      const unstakingData = await unstakingResponse.json();
-      const fundingData = await fundingResponse.json();
-      setCurrentSchedule(stakingData.schedule);
-      setCurrentUnstakingSchedule(unstakingData.schedule);
-      setCurrentFundingSchedule(fundingData.schedule);
-    } catch (error) {
-      console.error("Error fetching current schedules:", error);
-    }
-  };
+  const [accountCount, setAccountCount] = useState(5); // Default to 5 accounts
+  const [generationMessage, setGenerationMessage] = useState("");
 
   const handleSubmit = async (
     e: React.FormEvent,
@@ -53,12 +35,41 @@ export default function Home() {
       const data = await response.json();
       if (response.ok) {
         setMessage(data.message);
-        fetchCurrentSchedules();
+        // Update the corresponding schedule state
+        if (type === "staking") {
+          setCurrentSchedule(scheduleToUpdate);
+        } else if (type === "unstaking") {
+          setCurrentUnstakingSchedule(scheduleToUpdate);
+        } else {
+          setCurrentFundingSchedule(scheduleToUpdate);
+        }
       } else {
         setMessage(data.error);
       }
     } catch (error) {
-      setMessage("An error occurred");
+      setMessage(`An error occurred: ${error}`);
+    }
+  };
+
+  const handleGenerateAccounts = async () => {
+    try {
+      const response = await fetch("/api/gen-generator-accounts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ count: accountCount }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setGenerationMessage(
+          `Successfully generated ${accountCount} accounts.`
+        );
+      } else {
+        setGenerationMessage(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      setGenerationMessage(`An error occurred: ${error}`);
     }
   };
 
@@ -107,6 +118,28 @@ export default function Home() {
         </button>
       </form>
       {message && <p className="text-green-500">{message}</p>}
+
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-2">Generate and Import Accounts</h2>
+        <div className="flex items-center mb-4">
+          <input
+            type="number"
+            value={accountCount}
+            onChange={(e) => setAccountCount(parseInt(e.target.value))}
+            className="border p-2 mr-2 w-20"
+            min="1"
+          />
+          <button
+            onClick={handleGenerateAccounts}
+            className="bg-yellow-500 text-white p-2 rounded"
+          >
+            Generate Accounts
+          </button>
+        </div>
+        {generationMessage && (
+          <p className="text-green-500">{generationMessage}</p>
+        )}
+      </div>
     </div>
   );
 }

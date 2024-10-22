@@ -1,10 +1,13 @@
 import { BitcoinAccount } from "../types/bitcoin";
-import { fromBtcUnspentToMempoolUTXO, getBitcoinNetwork } from "../bitcoin";
+import {
+  fromBtcUnspentToMempoolUTXO,
+  getBitcoinNetwork,
+} from "../utils/bitcoin";
 import { getClient } from "../client/bitcoin";
-import { BtcMempool } from "../client";
 import * as vault from "xchains-bitcoin-ts/src/index";
 import { psbt } from "xchains-bitcoin-ts/src/utils/psbt";
 import { AddressTxsUtxo } from "@mempool/mempool.js/lib/interfaces/bitcoin/addresses";
+import { getMempoolAxiosClient } from "@/client/mempool-axios";
 
 export async function sendBondingTx(
   stakerAccount: BitcoinAccount,
@@ -17,9 +20,10 @@ export async function sendBondingTx(
   recipientEthAddress: string,
   mintAddress: string,
   bondingAmount: number,
+  mintingAmount: number,
   networkName: string = "testnet"
-): Promise<string> {
-  const mempoolClient = new BtcMempool();
+): Promise<{ txid: string; txhex: string }> {
+  const mempoolAxiosClient = getMempoolAxiosClient();
   const btcClient = getClient();
   const network = getBitcoinNetwork(networkName);
 
@@ -39,7 +43,7 @@ export async function sendBondingTx(
     destChainIdHex,
     recipientEthAddress,
     mintAddress,
-    bondingAmount
+    mintingAmount
   );
   // --- Get UTXOs
   const utxos: AddressTxsUtxo[] =
@@ -49,15 +53,16 @@ export async function sendBondingTx(
             stakerAccount.address,
           ])
         ).map(fromBtcUnspentToMempoolUTXO)
-      : await mempoolClient.addresses.getAddressTxsUtxo({
-          address: stakerAccount.address,
-        });
+      : await mempoolAxiosClient.getAddressTxsUtxo(stakerAccount.address);
 
-  const { fees } = mempoolClient;
-  const { fastestFee: feeRate } = await fees.getFeesRecommended(); // Get this from Mempool API
+  const { fastestFee: feeRate } = await mempoolAxiosClient.getFeesRecommended();
   const rbf = true; // Replace by fee, need to be true if we want to replace the transaction when the fee is low
-  const { psbt: unsignedVaultPsbt, feeEstimate: fee } =
-    await staker.getUnsignedVaultPsbt(utxos, bondingAmount, feeRate, rbf);
+  const { psbt: unsignedVaultPsbt } = await staker.getUnsignedVaultPsbt(
+    utxos,
+    bondingAmount,
+    feeRate,
+    rbf
+  );
 
   // Simulate signing
   const signedPsbt = psbt.signInputs(
@@ -70,7 +75,7 @@ export async function sendBondingTx(
   const hexTxfromPsbt = signedPsbt.extractTransaction().toHex();
 
   // Broadcast the transaction
-  const response = await btcClient.command("sendrawtransaction", hexTxfromPsbt);
+  const txid = await btcClient.command("sendrawtransaction", hexTxfromPsbt);
 
-  return response;
+  return { txid, txhex: hexTxfromPsbt };
 }

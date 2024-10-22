@@ -3,7 +3,7 @@ import { ProjectENV } from "@/env";
 import { unbondingServiceTx } from "@/transactions/unbondingServiceTx";
 import { BitcoinAccount } from "@/types/bitcoin";
 import { StakerAccount } from "@/types/staker";
-import { getAccountsPath, getUnstakingConfigPath } from "@/utils/path";
+import { getAccountsPath } from "@/utils/path";
 import prisma from "@/utils/prisma";
 import fs from "fs";
 
@@ -14,19 +14,15 @@ export const performUnstaking = async (): Promise<
     }
   | undefined
 > => {
-  const configPath = getUnstakingConfigPath();
-  const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-  const {
-    covenantQuorum,
-    burnContractAddress,
-    burnDestinationChain,
-    burnDestinationAddress,
-    sBTCContractAddress,
-    ethRpcUrl,
-    accountFileName,
-  } = config;
   const networkName = ProjectENV.NETWORK;
   const covenantPublicKeys = ProjectENV.COVENANT_PUBLIC_KEYS.split(",");
+  const accountFileName = ProjectENV.ACCOUNT_FILE_NAME;
+  const covenantQuorum = Number(ProjectENV.COVENANT_QUORUM);
+  const burnContractAddress = ProjectENV.BURN_CONTRACT_ADDRESS;
+  const burnDestinationChain = ProjectENV.BURN_DESTINATION_CHAIN;
+  const burnDestinationAddress = ProjectENV.BURN_DESTINATION_ADDRESS;
+  const sBTCContractAddress = ProjectENV.SBTC_CONTRACT_ADDRESS;
+  const ethRpcUrl = ProjectENV.ETH_RPC_URL;
 
   // Get one bonding TX randomly from the database to unstake
   const bondingTx = await prisma.bondingTransaction.findFirst({
@@ -51,6 +47,7 @@ export const performUnstaking = async (): Promise<
     stakerPubkey: bondingTx.staker_pubkey.slice(2),
   });
   const unstakeTxFromApi = vaultTxsData.data.find(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (tx: any) => tx.source_tx_hash.slice(2) === bondingTx.txid
   );
   if (!unstakeTxFromApi) {
@@ -116,6 +113,7 @@ export const performUnstaking = async (): Promise<
     console.log(
       `Updated fundedAccount status to FUNDED for address: ${stakerAccount.address}`
     );
+    console.log("--- Unstaking completed");
     return { txHash, tokenBurnAmount };
   } catch (error) {
     console.error("Error sending unstaking transaction:", error);

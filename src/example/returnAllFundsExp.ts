@@ -1,4 +1,4 @@
-import { performStaking } from "@/scheduled-tasks/staking";
+import { returnAllFunds } from "@/transactions/returnAllFunds";
 import prisma from "@/utils/prisma";
 
 // Initialize Prisma
@@ -10,4 +10,4 @@ prisma
     console.error("Failed to connect to the database:", error)
   );
 
-performStaking();
+returnAllFunds();

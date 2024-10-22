@@ -1,8 +1,8 @@
 import path from "path";
 import { generateKeys } from "./key";
-import { StakerAccount } from "./types/staker";
+import { StakerAccount } from "../types/staker";
 import * as fs from "fs";
-import { getAddressGeneratorPath } from "./utils/path";
+import { getAddressGeneratorPath } from "./path";
 import { ethers } from "ethers";
 
 export function generateAccounts(
@@ -32,16 +32,13 @@ export function saveAccountsToJson(
   filename: string
 ): void {
   const json = JSON.stringify(accounts, null, 2); // Pretty-print JSON with 2 spaces
-  const saveFile = path.join(getAddressGeneratorPath(), networkName, filename);
+  const saveDir = path.join(getAddressGeneratorPath(), networkName);
+  const saveFile = path.join(saveDir, filename);
+
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(saveDir)) {
+    fs.mkdirSync(saveDir, { recursive: true });
+  }
+
   fs.writeFileSync(saveFile, json, "utf-8");
 }
-
-// Example usage
-const numberOfAccounts = 5;
-const typeName = "P2WPKH";
-const networkName = "regtest";
-const filename = "01.json";
-
-const accounts = generateAccounts(numberOfAccounts, typeName, networkName);
-console.log(accounts);
-saveAccountsToJson(accounts, networkName, filename);

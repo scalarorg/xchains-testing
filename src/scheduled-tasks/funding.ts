@@ -4,7 +4,7 @@ import { sendEther } from "@/transactions/sendEther";
 import { BitcoinAccount } from "@/types/bitcoin";
 import { EthereumAccount } from "@/types/eth";
 import { StakerAccount } from "@/types/staker";
-import { getAccountsPath, getFundingConfigPath } from "@/utils/path";
+import { getAccountsPath } from "@/utils/path";
 import prisma from "@/utils/prisma";
 import fs from "fs";
 
@@ -17,16 +17,21 @@ export const performFunding = async (): Promise<
     }
   | undefined
 > => {
-  const configPath = getFundingConfigPath();
-  const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-  const {
-    senderAccount,
-    btcFundingAmount,
-    ethFundingAmount,
-    accountFileName,
-    ethRpcUrl,
-  } = config;
   const networkName = ProjectENV.NETWORK;
+  const accountFileName = ProjectENV.ACCOUNT_FILE_NAME;
+  const btcFundingAmount = Number(ProjectENV.BTC_FUNDING_AMOUNT);
+  const ethFundingAmount = ProjectENV.ETH_FUNDING_AMOUNT;
+  const ethRpcUrl = ProjectENV.ETH_RPC_URL;
+  const btcSenderAccount: BitcoinAccount = {
+    address: ProjectENV.FUNDING_BTC_ADDRESS,
+    privateKeyWIF: ProjectENV.FUNDING_BTC_PRIVATE_KEY_WIF,
+    publicKey: ProjectENV.FUNDING_BTC_PUBLIC_KEY,
+    privateKeyHex: ProjectENV.FUNDING_BTC_PRIVATE_KEY_HEX,
+  };
+  const ethSenderAccount: EthereumAccount = {
+    address: ProjectENV.FUNDING_ETH_ADDRESS,
+    privateKey: ProjectENV.FUNDING_ETH_PRIVATE_KEY,
+  };
 
   // Get accounts to fund
   const accountsFilePath = getAccountsPath(networkName, accountFileName);
@@ -42,7 +47,7 @@ export const performFunding = async (): Promise<
 
   // Create a Set of funded BTC addresses for efficient lookup
   const fundedBtcAddresses = new Set(
-    fundedAccounts.map((account) => account.btcAddress)
+    fundedAccounts.map((account: { btcAddress: string }) => account.btcAddress)
   );
 
   // Filter out accounts that have already been funded
@@ -73,12 +78,6 @@ export const performFunding = async (): Promise<
 
   try {
     // Fund Bitcoin
-    const btcSenderAccount: BitcoinAccount = {
-      address: senderAccount.btcAddress,
-      privateKeyWIF: senderAccount.btcPrivateKeyWIF,
-      publicKey: senderAccount.btcPublicKey,
-      privateKeyHex: senderAccount.btcPrivateKeyHex,
-    };
     const btcTxid = await sendBitcoin(
       btcSenderAccount,
       selectedAccount.btcAddress,
@@ -93,10 +92,6 @@ export const performFunding = async (): Promise<
     result.btcFundingAmount = btcFundingAmount;
 
     // Fund Ethereum
-    const ethSenderAccount: EthereumAccount = {
-      address: senderAccount.ethAddress,
-      privateKey: senderAccount.ethPrivateKey,
-    };
     const ethTxHash = await sendEther(
       ethSenderAccount,
       selectedAccount.ethAddress,
@@ -108,7 +103,7 @@ export const performFunding = async (): Promise<
       ethTxHash
     );
     result.ethTxHash = ethTxHash;
-    result.ethFundingAmount = ethFundingAmount;
+    result.ethFundingAmount = Number(ethFundingAmount);
 
     // Update or create the funded account record
     // Save BTC address and status
@@ -123,6 +118,8 @@ export const performFunding = async (): Promise<
         status: "FUNDED",
       },
     });
+
+    console.log("--- Funding completed");
 
     return result;
   } catch (error) {

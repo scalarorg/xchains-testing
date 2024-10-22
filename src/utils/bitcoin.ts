@@ -1,6 +1,6 @@
 import * as bitcoin from "bitcoinjs-lib";
 import { Network } from "bitcoinjs-lib";
-import { AddressType } from "./types/bitcoin";
+import { AddressType } from "../types/bitcoin";
 import * as ecc from "tiny-secp256k1";
 import { ECPairFactory } from "ecpair";
 import { toXOnly } from "bitcoinjs-lib/src/psbt/bip371";

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 import { createServer } from "http";
 import { parse } from "url";
 import next from "next";
@@ -5,7 +7,7 @@ import prisma from "./utils/prisma";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
-let port = 3002;
+let port = process.env.PORT ? parseInt(process.env.PORT) : 3002;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
@@ -13,11 +15,13 @@ const handle = app.getRequestHandler();
 prisma
   .$connect()
   .then(() => console.log("Connected to the database"))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   .catch((error: any) =>
     console.error("Failed to connect to the database:", error)
   );
 
 app.prepare().then(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const server = createServer(async (req: any, res: any) => {
     try {
       const parsedUrl = parse(req.url, true);

@@ -16,6 +16,9 @@ generator client {
 model BondingTransaction {
   id             Int      @id @default(autoincrement())
   txid           String   @unique
+  txhex          String
+  bondAmount     BigInt
+  mintAmount     BigInt
   staker_pubkey  String
   staker_address String
   createdAt      DateTime @default(now())
