@@ -1,0 +1,41 @@
+services:
+  xchains-testing-postgres:
+    image: postgres:14.9-alpine3.18
+    container_name: xchains-testing-postgres
+    environment:
+      POSTGRES_DB: xchains_testing_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5473:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d xchains_testing_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  xchains-testing:
+    container_name: scalar-xchains-testing
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "scalarorg/xchains-testing"
+    environment:
+      - DATABASE_URL=postgresql://user:password@xchains-testing-postgres:5432/xchains_testing_db
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        npm run start
+      "
+    volumes:
+      - .env.production.local:/app/.env:Z
+    ports:
+      - "3002:3002"
+    depends_on:
+      xchains-testing-postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

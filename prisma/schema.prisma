@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model BondingTransaction {
+  id             Int      @id @default(autoincrement())
+  txid           String   @unique
+  txhex          String
+  bondAmount     BigInt
+  mintAmount     BigInt
+  staker_pubkey  String
+  staker_address String
+  createdAt      DateTime @default(now())
+  status         String   @default("PENDING")
+
+  // Add any other fields that might be relevant based on the usage in unstaking.ts
+}
+
+model FundedAccount {
+  id         String @id @default(uuid())
+  btcAddress String @unique
+  status     String
+}
