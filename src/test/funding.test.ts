@@ -17,8 +17,8 @@ describe("Funding", () => {
   it("should fund bitcoin", async () => {
     const networkName = "testnet";
     const btcFundingAmount = 10000;
-    const senderPrivateKeyHex =
-      "5ff8c8370cea8ceeb618956ba8bedb6103d714121aa7d759b0ae934c042e5b5f";
+    // TODO: Implement env reader for testing
+    const senderPrivateKeyHex = "";
     const recipientAddress = "tb1qyawwqrnhx63dpgk6ga0r5yjevqs6989j7r05ny";
 
     const network = bitcoin.networks[networkName];
