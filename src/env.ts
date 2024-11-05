@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+// TODO: CLEAN UP FUNDING_BTC_PRIVATE_KEY_HEX
+
 const ProjectENVSchema = z.object({
   NETWORK: z.string().default("testnet"),
   PROTOCOL_PUBLIC_KEY: z.string(),
