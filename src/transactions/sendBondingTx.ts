@@ -4,8 +4,7 @@ import {
   getBitcoinNetwork,
 } from "../utils/bitcoin";
 import { getClient } from "../client/bitcoin";
-import * as vault from "xchains-bitcoin-ts/src/index";
-import { psbt } from "xchains-bitcoin-ts/src/utils/psbt";
+import { buildUnsignedStakingPsbt, signPsbt } from "@scalar-lab/bitcoin-vault";
 import { AddressTxsUtxo } from "@mempool/mempool.js/lib/interfaces/bitcoin/addresses";
 import { getMempoolAxiosClient } from "@/client/mempool-axios";
 
@@ -27,24 +26,6 @@ export async function sendBondingTx(
   const btcClient = getClient();
   const network = getBitcoinNetwork(networkName);
 
-  let destChainIdHex = Number(destChainId || "").toString(16);
-  if (destChainIdHex.length % 2) {
-    destChainIdHex = "0" + destChainIdHex;
-  }
-
-  const staker = new vault.Staker(
-    stakerAccount.address,
-    stakerAccount.publicKey,
-    protocolPublicKey,
-    covenantPublicKeys,
-    covenantQuorum,
-    tag,
-    version,
-    destChainIdHex,
-    recipientEthAddress,
-    mintAddress,
-    mintingAmount
-  );
   // --- Get UTXOs
   const utxos: AddressTxsUtxo[] =
     networkName === "regtest"
@@ -57,19 +38,32 @@ export async function sendBondingTx(
 
   const { fastestFee: feeRate } = await mempoolAxiosClient.getFeesRecommended();
   const rbf = true; // Replace by fee, need to be true if we want to replace the transaction when the fee is low
-  const { psbt: unsignedVaultPsbt } = await staker.getUnsignedVaultPsbt(
+
+  const { psbt: unsignedVaultPsbt } = buildUnsignedStakingPsbt(
+    tag,
+    version,
+    network,
+    stakerAccount.address,
+    new Uint8Array(Buffer.from(stakerAccount.publicKey, "hex")),
+    new Uint8Array(Buffer.from(protocolPublicKey, "hex")),
+    new Uint8Array(
+      Buffer.concat(covenantPublicKeys.map((key) => Buffer.from(key, "hex")))
+    ),
+    covenantQuorum,
+    false,
+    BigInt(destChainId || ""),
+    new Uint8Array(Buffer.from(mintAddress, "hex")),
+    new Uint8Array(Buffer.from(recipientEthAddress, "hex")),
     utxos,
-    bondingAmount,
     feeRate,
+    BigInt(bondingAmount),
     rbf
   );
 
-  // Simulate signing
-  const signedPsbt = psbt.signInputs(
-    stakerAccount.privateKeyWIF,
+  const { signedPsbt } = signPsbt(
     network,
-    unsignedVaultPsbt.toBase64(),
-    true
+    stakerAccount.privateKeyWIF,
+    unsignedVaultPsbt
   );
 
   const hexTxfromPsbt = signedPsbt.extractTransaction().toHex();

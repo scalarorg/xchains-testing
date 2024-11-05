@@ -3,6 +3,7 @@ import { z } from "zod";
 const ProjectENVSchema = z.object({
   NETWORK: z.string().default("testnet"),
   PROTOCOL_PUBLIC_KEY: z.string(),
+  PROTOCOL_PRIVATE_KEY: z.string(),
   COVENANT_PUBLIC_KEYS: z.string(),
   BITCOIN_NODE_ADDRESS: z.string(),
   BITCOIN_NODE_PORT: z.string(),
@@ -43,6 +44,7 @@ const ProjectENVSchema = z.object({
 export const ProjectENV = ProjectENVSchema.parse({
   NETWORK: process.env.NETWORK,
   PROTOCOL_PUBLIC_KEY: process.env.PROTOCOL_PUBLIC_KEY,
+  PROTOCOL_PRIVATE_KEY: process.env.PROTOCOL_PRIVATE_KEY,
   COVENANT_PUBLIC_KEYS: process.env.COVENANT_PUBLIC_KEYS,
   BITCOIN_NODE_ADDRESS: process.env.BITCOIN_NODE_ADDRESS,
   BITCOIN_NODE_PORT: process.env.BITCOIN_NODE_PORT,

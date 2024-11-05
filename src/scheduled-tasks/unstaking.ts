@@ -15,6 +15,7 @@ export const performUnstaking = async (): Promise<
   | undefined
 > => {
   const networkName = ProjectENV.NETWORK;
+  const protocolPublicKey = ProjectENV.PROTOCOL_PUBLIC_KEY;
   const covenantPublicKeys = ProjectENV.COVENANT_PUBLIC_KEYS.split(",");
   const accountFileName = ProjectENV.ACCOUNT_FILE_NAME;
   const covenantQuorum = Number(ProjectENV.COVENANT_QUORUM);
@@ -23,6 +24,8 @@ export const performUnstaking = async (): Promise<
   const burnDestinationAddress = ProjectENV.BURN_DESTINATION_ADDRESS;
   const sBTCContractAddress = ProjectENV.SBTC_CONTRACT_ADDRESS;
   const ethRpcUrl = ProjectENV.ETH_RPC_URL;
+  const tag = ProjectENV.TAG;
+  const version = Number(ProjectENV.VERSION);
 
   // Get one bonding TX randomly from the database to unstake
   const bondingTx = await prisma.bondingTransaction.findFirst({
@@ -98,7 +101,10 @@ export const performUnstaking = async (): Promise<
       tokenBurnAmount,
       ethRpcUrl,
       selectedAccount.ethPrivateKey,
-      networkName
+      networkName,
+      tag,
+      version,
+      protocolPublicKey
     );
     console.log("Unstaking transaction sent successfully. TX Hash:", txHash);
     await prisma.bondingTransaction.update({

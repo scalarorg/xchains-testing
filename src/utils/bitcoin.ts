@@ -3,12 +3,14 @@ import { Network } from "bitcoinjs-lib";
 import { AddressType } from "../types/bitcoin";
 import * as ecc from "tiny-secp256k1";
 import { ECPairFactory } from "ecpair";
-import { toXOnly } from "bitcoinjs-lib/src/psbt/bip371";
-import { BtcUnspent } from "xchains-bitcoin-ts/src/types/utxo";
+import { BtcUnspent } from "../types/bitcoin";
 import { AddressTxsUtxo } from "@mempool/mempool.js/lib/interfaces/bitcoin/addresses";
 
 bitcoin.initEccLib(ecc);
 const ECPair = ECPairFactory(ecc);
+
+export const toXOnly = (pubKey: Buffer) =>
+  pubKey.length === 32 ? pubKey : pubKey.subarray(1, 33);
 
 export function getBitcoinNetwork(networkName?: string): Network {
   switch (networkName) {

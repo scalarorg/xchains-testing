@@ -25,18 +25,6 @@ export const performStaking = async (): Promise<
   const mintAddress = ProjectENV.MINT_ADDRESS;
   const covenantQuorum = Number(ProjectENV.COVENANT_QUORUM);
 
-  console.log("networkName: ", networkName);
-  console.log("protocolPublicKey: ", protocolPublicKey);
-  console.log("covenantPublicKeys: ", covenantPublicKeys);
-  console.log("accountFileName: ", accountFileName);
-  console.log("stakingAmount: ", stakingAmount);
-  console.log("mintingAmount: ", mintingAmount);
-  console.log("tag: ", tag);
-  console.log("version: ", version);
-  console.log("destChainId: ", destChainId);
-  console.log("mintAddress: ", mintAddress);
-  console.log("covenantQuorum: ", covenantQuorum);
-
   // Get one user to stake
   const accountsFilePath = getAccountsPath(networkName, accountFileName);
   const candidateAccounts: StakerAccount[] = JSON.parse(
