@@ -7,9 +7,15 @@ import {
   getBitcoinNetwork,
 } from "../utils/bitcoin";
 import { getClient } from "../client/bitcoin";
-import { prepareTx, toPsbt } from "xchains-bitcoin-ts/src/utils/bitcoin";
 import { AddressTxsUtxo } from "@mempool/mempool.js/lib/interfaces/bitcoin/addresses";
 import { getMempoolAxiosClient } from "@/client/mempool-axios";
+import {
+  createStakingPsbt,
+  getStakingTxInputUTXOsAndFees,
+  prepareExtraInputByAddress,
+  PsbtOutputExtended,
+  UTXO,
+} from "@scalar-lab/bitcoin-vault";
 
 bitcoin.initEccLib(ecc);
 const ECPair = ECPairFactory(ecc);
@@ -35,37 +41,50 @@ export async function sendBitcoin(
   const feeRate = (await mempoolAxiosClient.getFeesRecommended()).hourFee;
   const rbf = false;
 
-  const outputs = [
+  const outputs: PsbtOutputExtended[] = [
     {
       address: recipientAddress,
-      value: amount,
+      value: BigInt(amount),
     },
   ];
 
-  const { ok, error } = prepareTx({
-    inputs: [],
-    outputs,
-    regularUTXOs: utxos,
+  const inputByAddress = prepareExtraInputByAddress(
+    sender.address,
+    Buffer.from(sender.publicKey, "hex"),
+    network
+  );
+
+  const regularUTXOs: UTXO[] = utxos.map(
+    ({ txid, vout, value }: AddressTxsUtxo) => ({
+      txid,
+      vout,
+      value,
+    })
+  );
+
+  const { selectedUTXOs, fee } = getStakingTxInputUTXOsAndFees(
+    network,
+    regularUTXOs,
+    inputByAddress.outputScriptSize,
+    amount,
     feeRate,
-    address: sender.address,
-  });
+    outputs
+  );
 
-  if (!ok) {
-    throw new Error(error);
-  }
-
-  const psbt = toPsbt({
-    tx: ok,
-    pubkey: Buffer.from(sender.publicKey, "hex"),
-    rbf,
-  });
+  const { psbt } = createStakingPsbt(
+    network,
+    inputByAddress,
+    selectedUTXOs,
+    outputs,
+    amount,
+    fee,
+    sender.address,
+    rbf
+  );
 
   // Sign the inputs
   const keyPair = ECPair.fromWIF(sender.privateKeyWIF, network);
-  // const keyPair = ECPair.fromWIF(
-  //   "cTwfZgRc36JCqV3EJh2tsq4toFFjTvgSxW4aVySwwACTkuBmVPWs",
-  //   network
-  // );
+
   psbt.signAllInputs(keyPair);
 
   // Validate and finalize the transaction

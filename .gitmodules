@@ -1,3 +1,4 @@
-[submodule "xchains-bitcoin-ts"]
-	path = xchains-bitcoin-ts
-	url = https://github.com/scalarorg/xchains-bitcoin-ts
+[submodule "bitcoin-vault"]
+	path = bitcoin-vault
+	url = https://github.com/scalarorg/bitcoin-vault
+	branch = info/readme-and-test-results

@@ -36,6 +36,7 @@ export function saveAccountsToJson(
   const saveFile = path.join(saveDir, filename);
 
   // Create directory if it doesn't exist
+  console.log(`Saving accounts to ${saveDir}`);
   if (!fs.existsSync(saveDir)) {
     fs.mkdirSync(saveDir, { recursive: true });
   }

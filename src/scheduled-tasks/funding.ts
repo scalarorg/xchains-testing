@@ -4,6 +4,10 @@ import { sendEther } from "@/transactions/sendEther";
 import { BitcoinAccount } from "@/types/bitcoin";
 import { EthereumAccount } from "@/types/eth";
 import { StakerAccount } from "@/types/staker";
+import {
+  getBitcoinNetwork,
+  getPublicKeyFromPrivateKeyWIF,
+} from "@/utils/bitcoin";
 import { getAccountsPath } from "@/utils/path";
 import prisma from "@/utils/prisma";
 import fs from "fs";
@@ -32,6 +36,11 @@ export const performFunding = async (): Promise<
     address: ProjectENV.FUNDING_ETH_ADDRESS,
     privateKey: ProjectENV.FUNDING_ETH_PRIVATE_KEY,
   };
+
+  btcSenderAccount.publicKey = getPublicKeyFromPrivateKeyWIF(
+    btcSenderAccount.privateKeyWIF,
+    getBitcoinNetwork(networkName)
+  );
 
   // Get accounts to fund
   const accountsFilePath = getAccountsPath(networkName, accountFileName);

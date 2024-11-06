@@ -1,11 +1,16 @@
 import { BitcoinAccount } from "../types/bitcoin";
 import { getBitcoinNetwork } from "../utils/bitcoin";
-import * as vault from "xchains-bitcoin-ts/src/index";
-import { psbt } from "xchains-bitcoin-ts/src/utils/psbt";
 import { ethers } from "ethers";
-import burnContractJSON from "@/abis/burn-contract.json";
+import protocolJSON from "@/abis/protocol.json";
 import sBTCJSON from "@/abis/sbtc.json";
-import { getMempoolAxiosClient } from "@/client/mempool-axios";
+// import { getMempoolAxiosClient } from "@/client/mempool-axios";
+import {
+  buildUnsignedUnstakingUserProtocolPsbt,
+  bytesToHex,
+  signPsbt,
+} from "@scalar-lab/bitcoin-vault";
+import { Psbt } from "bitcoinjs-lib";
+import * as bitcoin from "bitcoinjs-lib";
 
 export async function unbondingServiceTx(
   stakerAccount: BitcoinAccount,
@@ -20,47 +25,74 @@ export async function unbondingServiceTx(
   tokenBurnAmount: number,
   ethRpcUrl: string,
   ethPrivateKey: string,
-  networkName: string = "testnet"
+  networkName: string = "testnet",
+  tag: string,
+  version: number,
+  protocolPublicKey: string
 ): Promise<string> {
-  const mempoolAxiosClient = getMempoolAxiosClient();
+  // const mempoolAxiosClient = getMempoolAxiosClient();
   const network = getBitcoinNetwork(networkName);
   // ---
-  const burnContractABI = burnContractJSON.abi;
+  const protocolABI = protocolJSON;
   const sBTCABI = sBTCJSON.abi;
   const provider = new ethers.JsonRpcProvider(ethRpcUrl);
   const signer = new ethers.Wallet(ethPrivateKey, provider);
-  const burnContract = new ethers.Contract(
-    burnContractAddress,
-    burnContractABI,
+  const protocol = new ethers.Contract(
+    burnContractAddress, // protocolAddress
+    protocolABI,
     signer
   );
   const sBTC = new ethers.Contract(sBTCContractAddress, sBTCABI, signer);
   // ---
-  const { fastestFee: feeRate } = await mempoolAxiosClient.getFeesRecommended();
+  // const { fastestFee: feeRate } = await mempoolAxiosClient.getFeesRecommended();
   const rbf = true;
-  const unStaker = new vault.UnStaker(
-    stakerAccount.address,
-    hexTx,
-    covenantPublicKeys,
-    covenantQuorum
-  );
-  const { psbt: unsignedPsbt } = await unStaker.getUnsignedBurningPsbt(
-    receiveAddress,
-    feeRate,
+
+  const tx = bitcoin.Transaction.fromHex(hexTx);
+  const txid = tx.getId();
+  const scriptPubkeyOfLocking = tx.outs[0].script;
+  const valueOfLocking = tx.outs[0].value;
+
+  const p2wpkhScript = bitcoin.payments.p2wpkh({
+    pubkey: new Uint8Array(Buffer.from(stakerAccount.publicKey, "hex")),
+  }).output;
+
+  const psbtHex = buildUnsignedUnstakingUserProtocolPsbt(
+    tag,
+    version,
+    {
+      txid,
+      vout: 0,
+      value: valueOfLocking,
+      script_pubkey: scriptPubkeyOfLocking,
+    },
+    {
+      script: p2wpkhScript!,
+      value: valueOfLocking - BigInt(1_000),
+    },
+    new Uint8Array(Buffer.from(stakerAccount.publicKey, "hex")),
+    new Uint8Array(Buffer.from(protocolPublicKey, "hex")),
+    new Uint8Array(
+      Buffer.concat(covenantPublicKeys.map((key) => Buffer.from(key, "hex")))
+    ),
+    covenantQuorum,
+    false,
     rbf
   );
 
-  // Simulate staker signing
-  const stakerSignedPsbt = psbt.signInputs(
-    stakerAccount.privateKeyWIF,
+  const psbtStr = bytesToHex(psbtHex);
+  const psbt = Psbt.fromHex(psbtStr);
+
+  const { signedPsbt: stakerSignedPsbt } = signPsbt(
     network,
-    unsignedPsbt.toBase64(),
+    stakerAccount.privateKeyWIF,
+    psbt,
     false
   );
+
   const amountToBurn = ethers.parseUnits(tokenBurnAmount.toString(), 0);
   const txApprove = await sBTC.approve(burnContractAddress, amountToBurn);
   await txApprove.wait();
-  const txCallBurn = await burnContract.callBurn(
+  const txCallBurn = await protocol.unstake(
     burnDestinationChain,
     burnDestinationAddress,
     amountToBurn,
