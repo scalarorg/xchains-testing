@@ -1,0 +1,3 @@
+--log NONE
+--output NONE
+--report NONE

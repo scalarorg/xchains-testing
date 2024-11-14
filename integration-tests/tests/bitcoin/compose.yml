@@ -1,0 +1,22 @@
+services:
+  bitcoind:
+    image: lncm/bitcoind:v25.0
+    restart: on-failure
+    networks:
+      - integration-test
+    ports:
+      - "18332:18332"  # Bitcoin regtest RPC
+      - "18333:18333"  # Bitcoin regtest p2p
+    volumes:
+      - ./.bitcoin:/root/.bitcoin
+      - ./bitcoin.conf:/root/.bitcoin/bitcoin.conf
+      - ./bitcoin.sh:/root/bitcoin.sh
+    environment:
+      - DATADIR=/root/.bitcoin
+    user: root
+    working_dir: /root/.bitcoin
+    entrypoint: ["/bin/sh", "/root/bitcoin.sh", "entrypoint"]
+
+networks:
+  integration-test:
+    external: true

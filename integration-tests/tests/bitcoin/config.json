@@ -1,0 +1,24 @@
+{
+  "repositories": [
+    {
+      "name": "bitcoin-vault",
+      "url": "https://github.com/scalarorg/bitcoin-vault.git",
+      "defaultBranch": "main",
+      "versions": [
+        {
+          "name": "0.0.14",
+          "branch": "main",
+          "commit": "46fbfff870cffe14f875556b7e934983ab3fde18"
+        }
+      ]
+    },
+    {
+      "name": "electrs",
+      "url": "https://github.com/scalarorg/electrs.git",
+      "defaultBranch": "scalar",
+      "versions": [
+        
+      ]
+    }
+  ]
+} 
