@@ -1,0 +1,16 @@
+version: "3.8"
+networks:
+  integration-test:
+    external: true
+
+services:
+  typescript-api:
+    build: .
+    image: integration-tests-client-typescript-api
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    networks:
+      - integration-test

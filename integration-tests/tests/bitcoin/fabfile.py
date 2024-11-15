@@ -5,6 +5,7 @@ import json
 import yaml
 from pathlib import Path
 import time
+import requests
 
 @task
 def bitcoin(ctx):
@@ -207,9 +208,12 @@ def test_staking(ctx):
 @task
 def cleanup(ctx):
     """
-    Clean up by calling cleanup_bitcoin, cleanup_electrs, and cleanup_vault
+    Clean up by calling cleanup_bitcoin, cleanup_electrs, cleanup_vault, and stop typescript-api
     Usage: fab cleanup
     """
+    # Stop TypeScript API
+    stop_typescript_api(ctx)
+    
     # Call cleanup_bitcoin first (without vault cleanup)
     cleanup_bitcoin(ctx)
     
@@ -351,58 +355,54 @@ def start_electrs(ctx):
 @task
 def get_staking_transactions(ctx, port=60001, host="localhost", protocol="tcp", number=1, from_key=None):
     """
-    Get staking transactions using the TypeScript client
+    Get staking transactions using the TypeScript client API
     Usage: fab get-staking-transactions [--port=60001] [--host=localhost] [--protocol=tcp] [--number=10] [--from-key=<key>]
     Returns: Dictionary containing transaction content if found
     """
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    client_dir = Path(current_dir).parent.parent / 'clients' / 'typescript'
-    output_file = os.path.join(current_dir, 'staking_transactions_output.txt')
-    
-    # Install dependencies if needed
-    with ctx.cd(str(client_dir)):
-        ctx.run('bun install', warn=True)
-    
-    # Execute the TypeScript script directly using bun
-    with ctx.cd(str(client_dir)):
-        command = ['bun', 'run', 'src/getStakingTransactions.ts']
-        command.extend([str(port), host, protocol, str(number)])
-        if from_key:
-            command.append(str(from_key))
+    # Prepare request payload
+    payload = {
+        "port": port,
+        "host": host,
+        "protocol": protocol,
+        "numberOfTransactions": number,
+        "fromKey": from_key
+    }
+
+    try:
+        # Make POST request to the TypeScript API
+        response = requests.post(
+            "http://localhost:3000/api/staking-transactions",
+            json=payload,
+            headers={"Content-Type": "application/json"}
+        )
         
-        result = ctx.run(' '.join(command) + f' | tee {output_file}')
-        if result.ok:
-            try:
-                # Read and parse the output file
-                with open(output_file, 'r') as f:
-                    content = f.read()
-                
-                # Parse JSON output
-                transactions = json.loads(content)
-                print("[FAB] Staking transactions retrieved successfully:")
-                print(json.dumps(transactions, indent=2))
-                
-                # Look for tx_content in the transactions
-                if isinstance(transactions, list):
-                    for tx in transactions:
-                        if 'tx_content' in tx:
-                            os.remove(output_file)
-                            return tx
-                os.remove(output_file)
-                return transactions
-            except json.JSONDecodeError:
-                print("[FAB] Warning: Could not parse JSON output")
-                print(content)
-                if os.path.exists(output_file):
-                    os.remove(output_file)
-                return None
+        # Check if request was successful
+        response.raise_for_status()
+        
+        # Parse response
+        result = response.json()
+        
+        if result.get('success'):
+            transactions = result.get('data')
+            print("[FAB] Staking transactions retrieved successfully:")
+            print(json.dumps(transactions, indent=2))
+            
+            # Look for tx_content in the transactions
+            if isinstance(transactions, list):
+                for tx in transactions:
+                    if 'tx_content' in tx:
+                        return tx
+            return transactions
         else:
-            print("[FAB] Failed to get staking transactions")
-            if result.stderr:
-                print(result.stderr)
-            if os.path.exists(output_file):
-                os.remove(output_file)
+            print("[FAB] Failed to get staking transactions:", result.get('error'))
             return None
+            
+    except requests.exceptions.RequestException as e:
+        print(f"[FAB] Error making request to TypeScript API: {str(e)}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"[FAB] Error parsing response: {str(e)}")
+        return None
 
 @task
 def build_electrs(ctx):
@@ -447,6 +447,18 @@ def integration_test(ctx):
     else:
         print("[FAB] integration-test network already exists")
 
+    # Build TypeScript API
+    build_typescript_api(ctx)
+    print("[FAB] Waiting for TypeScript API build to complete...")
+    time.sleep(5)
+
+    # Start TypeScript API service
+    if not start_typescript_api(ctx):
+        cleanup(ctx)
+        raise Exception("Failed to start TypeScript API service")
+    print("[FAB] Waiting for TypeScript API to initialize...")
+    time.sleep(10)
+
     # Start Bitcoin network
     bitcoin(ctx)
     print("[FAB] Waiting for Bitcoin network to initialize...")
@@ -457,6 +469,7 @@ def integration_test(ctx):
         cleanup(ctx)
         raise Exception("Failed to clone electrs")
 
+    # TODO: Romove this after upload to docker hub
     # # Build Electrs
     # build_electrs(ctx)
     # print("[FAB] Waiting for Electrs build to complete...")
@@ -495,7 +508,7 @@ def integration_test(ctx):
     time.sleep(30)
 
     # Get staking transactions and verify tx_content
-    tx_result = get_staking_transactions(ctx)
+    tx_result = get_staking_transactions(ctx, host="mempool-electrs", port=60001)
     if not tx_result or 'tx_content' not in tx_result:
         cleanup(ctx)
         raise Exception("Failed to retrieve transaction content")
@@ -534,3 +547,87 @@ def integration_test(ctx):
     # Optional: Cleanup after test
     cleanup(ctx)
     print("\n[FAB] Cleanup completed")
+
+@task
+def build_typescript_api(ctx):
+    """
+    Build TypeScript API container from the clients/typescript directory
+    Usage: fab build-typescript-api
+    """
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    typescript_dir = Path(current_dir).parent.parent / 'clients' / 'typescript'
+    
+    if not typescript_dir.exists():
+        print("[FAB] Error: typescript directory not found.")
+        return
+    
+    # Use the docker-compose.yml file from the typescript directory
+    compose_file = typescript_dir / 'docker-compose.yml'
+    command = f"docker compose -f {str(compose_file)} build typescript-api"
+    
+    result = ctx.run(command)
+    if result.ok:
+        print(f"[FAB] TypeScript API container built successfully")
+    else:
+        print("[FAB] Failed to build TypeScript API container")
+
+@task
+def start_typescript_api(ctx):
+    """
+    Start TypeScript API service using Docker Compose
+    Usage: fab start-typescript-api
+    """
+    # Create Docker network if it doesn't exist
+    network_check = ctx.run('docker network ls | grep integration-test', warn=True)
+    if not network_check.ok:
+        print("[FAB] Creating integration-test network...")
+        ctx.run('docker network create integration-test')
+    else:
+        print("[FAB] integration-test network already exists")
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    typescript_dir = Path(current_dir).parent.parent / 'clients' / 'typescript'
+    
+    if not typescript_dir.exists():
+        print("[FAB] Error: typescript directory not found.")
+        return False
+    
+    # Use the docker-compose.yml file from the typescript directory
+    compose_file = typescript_dir / 'docker-compose.yml'
+    command = f"docker compose -f {str(compose_file)} up -d typescript-api"
+    
+    result = ctx.run(command)
+    if result.ok:
+        print("[FAB] TypeScript API service started successfully")
+        # Wait for the service to be ready
+        print("[FAB] Waiting for TypeScript API to initialize...")
+        time.sleep(5)
+        return True
+    else:
+        print("[FAB] Failed to start TypeScript API service")
+        return False
+
+@task
+def stop_typescript_api(ctx):
+    """
+    Stop TypeScript API service using Docker Compose
+    Usage: fab stop-typescript-api
+    """
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    typescript_dir = Path(current_dir).parent.parent / 'clients' / 'typescript'
+    
+    if not typescript_dir.exists():
+        print("[FAB] Error: typescript directory not found.")
+        return False
+    
+    # Use the docker-compose.yml file from the typescript directory
+    compose_file = typescript_dir / 'docker-compose.yml'
+    command = f"docker compose -f {str(compose_file)} down -v typescript-api"
+    
+    result = ctx.run(command)
+    if result.ok:
+        print("[FAB] TypeScript API service stopped successfully")
+        return True
+    else:
+        print("[FAB] Failed to stop TypeScript API service")
+        return False
