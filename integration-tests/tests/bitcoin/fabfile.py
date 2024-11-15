@@ -12,8 +12,15 @@ def bitcoin(ctx):
     Run Bitcoin node in regtest mode using Docker Compose
     Usage: fab bitcoin
     """
+    # Create Docker network if it doesn't exist
+    network_check = ctx.run('docker network ls | grep integration-test', warn=True)
+    if not network_check.ok:
+        print("[FAB] Creating integration-test network...")
+        ctx.run('docker network create integration-test')
+    else:
+        print("[FAB] integration-test network already exists")
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    
     command = f"docker compose -f {current_dir}/compose.yml up -d bitcoind"
     
     result = ctx.run(command)
@@ -266,6 +273,14 @@ def start_electrs(ctx):
     Set up Electrs environment by copying configuration files and start the container
     Usage: fab start-electrs
     """
+    # Create Docker network if it doesn't exist
+    network_check = ctx.run('docker network ls | grep integration-test', warn=True)
+    if not network_check.ok:
+        print("[FAB] Creating integration-test network...")
+        ctx.run('docker network create integration-test')
+    else:
+        print("[FAB] integration-test network already exists")
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     electrs_dir = os.path.join(current_dir, 'electrs')
     
@@ -430,6 +445,14 @@ def integration_test(ctx):
     Run complete integration test workflow
     Usage: fab integration-test
     """
+    # Create Docker network if it doesn't exist
+    network_check = ctx.run('docker network ls | grep integration-test', warn=True)
+    if not network_check.ok:
+        print("[FAB] Creating integration-test network...")
+        ctx.run('docker network create integration-test')
+    else:
+        print("[FAB] integration-test network already exists")
+
     # Start Bitcoin network
     bitcoin(ctx)
     print("[FAB] Waiting for Bitcoin network to initialize...")
@@ -516,4 +539,5 @@ def integration_test(ctx):
     print("\n[FAB] Integration test completed successfully")
 
     # Optional: Cleanup after test
-    # cleanup(ctx)
+    cleanup(ctx)
+    print("\n[FAB] Cleanup completed")
